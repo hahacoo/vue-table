@@ -1,5 +1,5 @@
 # vue-table
-a simple vue table, sortable, page, template
+table, sort, page, resize, template
 
 # config
 
