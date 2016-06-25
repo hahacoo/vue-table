@@ -1,0 +1,394 @@
+@-webkit-keyframes 'loading' {
+
+    from {
+       opacity: .2;
+    }
+
+    to {
+        -webkit-transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+.melon-grid {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+
+    .col-label {
+        display: block;
+        margin: 10px 0;
+    }
+
+    .grid-content {
+        width: 100%;
+        position: relative;
+
+        .resize-line {
+            position: absolute;
+            height: 100%;
+            border: 1px dashed #CBCBCB;
+            cursor: col-resize;
+        }
+
+        .grid-head {
+            border-bottom: 1px solid #ddd;
+            background-color: #f2f2f2;
+            overflow: hidden;
+
+            .head-scrollbar {
+                padding-right: 20px;
+            }
+
+            .head-scrollbar::-webkit-scrollbar {
+                visibility: hidden;
+            }
+
+            .head-scrollbar::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .head-scrollbar::-webkit-scrollbar-button {
+
+            }
+
+            .head-box {
+                float: left;
+                box-sizing: content-box;
+                overflow-x: hidden;
+
+                .head-table {
+                    margin: 0;
+                    table-layout: fixed;
+                    border: none;
+
+                    tr>th, tr>td {
+                        text-align: left;
+                        vertical-align: middle;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                        border-left: none;
+                        border-top: none;
+                        border-bottom: none;
+                        padding: 2px;
+                        padding-right: 0;
+                    }
+
+                    tr>th.sortable, tr>th.sortable {
+                        cursor: pointer;
+                    }
+
+                    .resize-tr {
+                        cursor: col-resize;
+                    }
+
+                    .head-content {
+                        height: 35px;
+                        line-height: 35px;
+                        padding: 0 6px;
+                    }
+
+                    .head-resize {
+                        height: 35px;
+                        display: block;
+                        float: right;
+                        cursor: col-resize;
+                    }
+
+                    .head-resize:hover {
+                        background-color: #E2E2E2;
+                    }
+
+                    .head-sortable {
+                        font-size: 12px;
+                        position: relative;
+
+                        >span:first-child {
+                            position: absolute;
+                            top: -3px;
+                            left: 3px;
+                        }
+
+                        >span:last-child {
+                            position: absolute;
+                            top: 6px;
+                            left: 3px;
+                        }
+
+                        .sort-disabled {
+                            opacity: .35;
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        .grid-body {
+            height: 402px;
+            overflow-y: auto;
+
+            .body-box {
+                border-bottom: 1px solid #ddd;
+                float: left;
+
+                .grid-table {
+                    margin-bottom: 0;
+                    table-layout: fixed;
+                    box-sizing: content-box;
+                    border: none;
+
+                    tr>th, tr>td {
+                        height: 40px;
+                        text-align: left;
+                        vertical-align: middle;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        border-left: none;
+                        border-top: none;
+                        //word-wrap: break-word;
+                        //word-break: break-all;
+                    }
+
+                    tr>td:last-child{
+                        border-right: none
+                    }
+
+                    tr:last-child>td {
+                        border-bottom: none;
+                    }
+
+                    .grid-loading {
+                        height: 400px;
+                        background-color: inherit;
+
+                        .loading-content {
+                            width: 200px;
+                            height: 50px;
+                            margin: 0 auto;
+                            list-style: none;
+                            display: -webkit-flex;;
+                            -webkit-align-items: center;
+                            -webkit-justify-content: center;
+
+                            .loading-circle {
+                                width: 20px;
+                                height: 20px;
+                                border-radius: 10px;
+                                background-color: #DDD;
+                                margin: 0 10px;
+                                float: left;
+                            }
+
+                            .loading-circle:first-child {
+                                -webkit-transform: scale(0);
+                                -webkit-animation: loading .8s infinite alternate
+                            }
+
+                            .loading-circle:nth-child(2) {
+                                -webkit-transform: scale(0);
+                                -webkit-animation: loading .8s .3s infinite alternate
+                            }
+
+                            .loading-circle:last-child {
+                                -webkit-transform: scale(0);
+                                -webkit-animation: loading .8s .6s infinite alternate
+                            }
+
+                        }
+                    }
+
+                    .grid-arrow {
+
+                        a {
+                            text-decoration: none;
+                        }
+
+                    }
+
+                    pre {
+                        text-align: left;
+                        background-color: inherit;
+                        border: 0
+                    }
+
+                    .detail-wrap {
+                        padding: 20px;
+
+                        nav {
+                            height: 40px;
+                            line-height: 40px;
+                            border-bottom: 1px solid #ddd;
+                            margin-bottom: 10px;
+                            text-align: left;
+
+                            label {
+                                width: 120px;
+                                text-align: center;
+                                cursor: pointer;
+
+                                &:hover {
+                                    border-bottom: 2px solid #42a9f4;
+                                }
+                            }
+
+                            label.active {
+                                border-bottom: 2px solid #42a9f4;
+                            }
+                        }
+                    }
+
+                    .detail-table {
+                        width: 100%;
+
+                        tr>th, tr>td {
+                            text-align: left;
+                            vertical-align: middle;
+                        }
+
+                        .oper-cell {
+                            width: 60px;
+                        }
+
+                        .value-cell {
+                            word-break: break-all;
+                            word-wrap: break-word;
+                        }
+                    }
+                }
+            }
+
+            .body-box.box-borderd {
+
+                tr>td:last-child{
+                    border-right: 1px solid #ddd;
+                }
+            }
+
+            .body-box.box-empty {
+
+                tr{
+                    background-color: transparent;
+                }
+
+                tr:hover{
+                    background-color: transparent;
+                }
+
+                tr>td:last-child{
+                    border: none;
+                }
+
+                border-bottom: none;
+            }
+
+        }
+
+    }
+
+    .hidden {
+        visibility: hidden;
+    }
+
+    .grid-footer {
+        overflow: hidden;
+        background-color: #f2f2f2;
+
+        ul.grid-pagination {
+            margin: 0;
+            float: left;
+            position: relative;
+            left: 50%;
+
+            li {
+                float: left;
+                position: relative;
+                right: 50%;
+
+                span, a{
+                    margin: 0;
+                    //color: #000;
+                    color: #91a0ad;
+                    padding: 6px 6px;
+                    border: 0;
+                    background-color: inherit;
+                }
+
+                a:focus, a:hover {
+                    background-color: #fff;
+                }
+
+                .pagination-page {
+                    line-height: 1.42857143;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 2px;
+                    margin-top: 3px;
+                    margin-right: 6px;
+                }
+
+            }
+
+            li.pagination-disabled{
+                opacity: .35;
+                cursor: default;
+
+                a {
+                    cursor: default;
+                }
+
+                a:focus, a:hover {
+                    background-color: transparent;
+                }
+            }
+            .grid-info {
+
+                span {
+                    margin: 0;
+                    border-top: 0;
+                    border-right: 0;
+                    border-bottom: 0;
+                    color: #333;
+                    background-color: inherit;
+
+                    &:hover {
+                        background-color: rgba(255, 255, 255, 0);
+                    }
+                }
+            }
+
+            .grid-empty-info {
+
+                span {
+                    border: 0;
+                    color: #333;
+                    background-color: inherit;
+
+                    &:hover {
+                        //background-color: rgba(255, 255, 255, 0);
+                    }
+                }
+            }
+        }
+
+        .pagination-info {
+            float: right;
+            line-height: 1.42857143;
+            padding: 6px 6px;
+        }
+
+        .grid-limit {
+            margin-bottom: 0;
+        }
+
+    }
+
+}
+
+.grid-resize {
+    user-select: none;
+}

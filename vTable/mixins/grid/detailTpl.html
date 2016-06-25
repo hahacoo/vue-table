@@ -1,0 +1,28 @@
+<nav>
+    <label @click="showJson = false" :class="{active: !showJson}">键 / 值</label>
+    <label @click="showJson = true" :class="{active: showJson}">JSON</label>
+</nav>
+<pre v-html="currRecord.record | colFilter | json | highlight | xssFilter" v-show="showJson">
+</pre>
+
+<table class="detail-table" v-show="!showJson">
+    <col width="200px"></col>
+    <col width="60px"></col>
+    <tbody>
+        <tr v-for="val in currRecord.record">
+            <template v-if="showField($key)">
+
+                <td v-text="$key | colName"></td>
+                <td class="oper-cell">
+                    <a href="javascript:void(0)" @click="filterAdd($key, val, true)" title="过滤该条件">
+                        <i class="glyphicon glyphicon-zoom-in"></i>
+                    </a>
+                    <a href="javascript:void(0)" @click="filterAdd($key, val, false)" title="排除该条件">
+                        <i class="glyphicon glyphicon-zoom-out"></i>
+                    </a>
+                </td>
+                <td class="value-cell" v-html="val | highlight | xssFilter"></td>
+            </template>
+        </tr>
+    </tbody>
+</table>
