@@ -10,7 +10,7 @@
     }
 }
 
-.melon-grid {
+.vue-grid {
     width: 100%;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -217,7 +217,8 @@
                     }
 
                     .detail-wrap {
-                        padding: 20px;
+                        padding: 0;
+                        overflow: hidden;
 
                         nav {
                             height: 40px;
@@ -240,25 +241,30 @@
                                 border-bottom: 2px solid #42a9f4;
                             }
                         }
+
+                        .detail-container {
+                            padding: 20px;
+                            margin: 0;
+                            background-color: #fff;
+                            list-style: none;
+
+                            .label-cell {
+                                width: 20%;
+                                color: #00FA04
+                            }
+
+                            .value-cell {
+                                width: 80%;
+                                word-break: break-all;
+                                word-wrap: break-word;
+                            }
+
+                        }
+
+
                     }
 
-                    .detail-table {
-                        width: 100%;
-
-                        tr>th, tr>td {
-                            text-align: left;
-                            vertical-align: middle;
-                        }
-
-                        .oper-cell {
-                            width: 60px;
-                        }
-
-                        .value-cell {
-                            word-break: break-all;
-                            word-wrap: break-word;
-                        }
-                    }
+                    
                 }
             }
 

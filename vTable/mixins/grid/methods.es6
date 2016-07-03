@@ -102,12 +102,11 @@ export default {
 
             this.orderBy = col;
 
-            this.setPage(1)
+            this.setPage(1, true)
         },
 
         collapse    : function(record) {
             var self = this;
-            this.showJson && (this.showJson = false)
             if(this.currRecord.shown) {
                 this.records.$remove(this.currRecord);
             }
@@ -119,10 +118,10 @@ export default {
                         break;
                     }
                 }
-                var last = this.records.splice(i + 1);
                 this.currRecord.shown = true;
                 this.currRecord.record = this.records[i];
-                this.records = this.records.concat(this.currRecord, last);
+                this.$dispatch(this.tableId + 'vue.table.collapse', this.currRecord)
+                this.records.splice(i + 1, 0, this.currRecord)
                 this.$nextTick(function() {
                     var detail = document.getElementById('grid-detail');
                     this.$compile(detail);
@@ -130,7 +129,6 @@ export default {
 
             }
 
-            this.$emit("melon.grid.resize");
         },
 
         formatData: function(data) {
@@ -163,7 +161,6 @@ export default {
         serverCollection: function() {
             var self = this,
                 params = {};
-
             
             params.limit = this.pageSize;
             params.page = this.page;
@@ -201,7 +198,7 @@ export default {
                 }
 
                 setTimeout(function(){
-                    this.$dispatch("melon.grid.loaded", this.records)
+                    this.$dispatch(this.tableId + "vue.table.loaded", this.records)
                 }.bind(self), 0);
 
             }, function(res) {
@@ -210,10 +207,36 @@ export default {
             })
         },
 
-        clientCollection: function() {
+        clientCollection: function(sort) {
             var self = this,
                 page = this.page,
-                limit = this.pageSize;
+                limit = this.pageSize,
+                orderBy = this.orderBy,
+                ascending = this.ascending ? 1 : -1;
+
+            if(sort) {
+                this.data.sort(function(preData, nextData) {
+
+                    var pre = preData[orderBy],
+                        next = nextData[orderBy];
+
+                    if(typeof pre == "string" && typeof next == "string"){
+                        return ascending * pre.localeCompare(next);
+                    }
+                    if(typeof pre == "number" && typeof next == "string"){
+                        return -ascending;
+                    }
+                    if(typeof pre == "string" && typeof next == "number"){
+                        return ascending;
+                    }
+                    if(typeof pre == "number" && typeof next == "number"){
+                        if(pre > next) return ascending;
+                        if(pre == next) return 0;
+                        if(pre < next) return -ascending;
+                    }
+
+                })
+            }
 
             this.records = this.data.slice( (page - 1) * limit, page * limit)
                 .map(function(d, i) {
@@ -225,28 +248,28 @@ export default {
             this.count = this.data.length;
 
             setTimeout(function(){
-                this.$dispatch("melon.grid.loaded", this.records)
+                this.$dispatch(this.tableId + "vue.table.loaded", this.records)
             }.bind(this), 0);
         },
 
-        getData: function() {
+        getData: function(sort) {
             var self = this,
                 params = {};
             this.loaded = false;
 
             if(this.data !== undefined) {
-                this.clientCollection();
+                this.clientCollection(sort);
             } else {
                 this.serverCollection();
             }
         },
 
-        setPage: function(page) {
+        setPage: function(page, sort) {
             if(typeof  page !== 'undefined') {
                 this.page = page
             }
             this.pageModel = this.page;
-            this.getData();
+            this.getData(sort);
         },
 
         gotoPage: function() {

@@ -71,7 +71,7 @@ export default {
 
 		colFilter: function(value) {
 			if(typeof value === "object") {
-				var filterCols = ["_id", "shown"];
+				var filterCols = [this.primaryKey, "shown", "_grid_index"];
 
 				if(value instanceof Array) {
 					return value.filter(function(col) {

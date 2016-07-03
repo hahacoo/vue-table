@@ -36,7 +36,7 @@ export default {
             this.primaryKey = "id";
         }
 
-        this.setPage();
+        this.setPage(1, true);
     }
 
 }

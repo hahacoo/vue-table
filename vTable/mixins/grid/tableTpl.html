@@ -1,8 +1,6 @@
 
 <div class="grid-content" :class="{hidden: calculating}" v-el:content>
-    <!-- 标注线 -->
     <div class="resize-line" :style="{left : resizeLine.left + 'px'}" v-show="resizeAble" @mouseup.stop="resizeStop($event)"></div>
-    <!-- 列表头部 -->
     <div class="grid-head" :style="{ width : container_w + 'px'}" @mousemove="resize($event)">
         <div class="head-box head-scrollbar">
             <table class="table table-hover table-bordered table-striped head-table" :style="{width: table_w + 'px'}" :class="tableClass" @mouseup.stop="resizeStop">
@@ -15,7 +13,7 @@
                         </td>
                         <td v-if="(showIndex && !multiple) || colSelect" class="head-index" style="width : 50px;" >
                             <div class="head-content">
-                                <span v-if="!colSelect">#</span>
+                                <span>#</span>
                             </div>
                         </td>
                         <th :id="initId(col)" :style="{width: colWidths[col] + 'px'}"  :class="{ 'resize-tr': resizeAble, 'sortable': sortColumns[col]}" v-for="col in defaultColumns"  >
@@ -33,12 +31,10 @@
             </table>
         </div>
     </div>
-    <!-- 列表内容 -->
     <div class="grid-body" :style="{ width : container_w  + 'px'}">
         <div class="body-box" :class="{ 'box-borderd': table_w < container_w, 'box-empty': count == 0}">
             <table class="table table-hover table-bordered table-striped grid-table" :style="{width: table_w + 'px'}" :class="tableClass">
                 <tbody v-el:tbody>
-                <!--数据加载-->
                 <tr class="grid-loading" v-if="!loaded">
                     <td colspan="{{colSpan}}">
                         <ul class="loading-content">
@@ -59,9 +55,8 @@
                         <a v-if="colSelect" href="javascript:void(0);" :class="collapseClass(rec)" @click="collapse(rec)"></a>
                         <span v-else>{{rec._grid_index}}</span>
                     </td>
-                    <td :tr-id="'td_' + initId(col)" v-for="col in defaultColumns" v-if="!rec.shown" :style="{width: colWidths[col] + 'px'}" v-html="rec[col] | tplRender col rec | highlight | xssFilter ">
+                    <td :data-tr-id="'td_' + initId(col)" v-for="col in defaultColumns" v-if="!rec.shown" :style="{width: colWidths[col] + 'px'}" v-html="rec[col] | tplRender col rec | highlight | xssFilter ">
                     </td>
-                    <!--下拉详情列-->
                     <td id="grid-detail" class="detail-wrap" v-if="rec.shown" colspan="{{colSpan}}" v-html="detail">
                     </td>
                 </tr>
@@ -76,7 +71,6 @@
     </div>
 </div>
 
-<!-- 分页控制 -->
 <nav class="grid-footer">
 
     <ul class="pagination grid-pagination" v-if="showPage">

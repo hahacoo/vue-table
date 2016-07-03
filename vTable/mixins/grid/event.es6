@@ -8,11 +8,11 @@ export default {
             self.calcWidth();
         }
 
-        this.$on("melon.grid.resize", function() {
+        this.$on(this.tableId + "vue.table.resize", function() {
             this.calcWidth();
         })
 
-        this.$on("melon.grid.loaded", function(data) {
+        this.$on(this.tableId + "vue.table.loaded", function(data) {
             this.loaded = true;
             this.chkAll = false;
             this.chkIds = [];
@@ -23,11 +23,11 @@ export default {
             })
         })
 
-        this.$on("melon.grid.refresh", function() {
+        this.$on(this.tableId + "vue.table.refresh", function() {
             this.setPage();
         });
 
-        this.$on("melon.grid.search", function(url, param) {
+        this.$on(this.tableId + "vue.table.search", function(url, param) {
             if(arguments.length == 1) {
                 if(typeof url == "string") {
                     this.url = url

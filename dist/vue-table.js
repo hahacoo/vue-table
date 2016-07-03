@@ -265,7 +265,6 @@ exports.default = {
             orderBy: "",
             ascending: 1,
             searchParams: {},
-            showJson: false,
             loaded: false,
             chkAll: false,
             chkIds: [],
@@ -287,7 +286,7 @@ exports.default = {
 };
 
 },{}],6:[function(require,module,exports){
-module.exports = "<nav>\r\n    <label @click=\"showJson = false\" :class=\"{active: !showJson}\">键 / 值</label>\r\n    <label @click=\"showJson = true\" :class=\"{active: showJson}\">JSON</label>\r\n</nav>\r\n<pre v-html=\"currRecord.record | colFilter | json | highlight | xssFilter\" v-show=\"showJson\">\r\n</pre>\r\n\r\n<table class=\"detail-table\" v-show=\"!showJson\">\r\n    <col width=\"200px\"></col>\r\n    <col width=\"60px\"></col>\r\n    <tbody>\r\n        <tr v-for=\"val in currRecord.record\">\r\n            <template v-if=\"showField($key)\">\r\n\r\n                <td v-text=\"$key | colName\"></td>\r\n                <td class=\"oper-cell\">\r\n                    <a href=\"javascript:void(0)\" @click=\"filterAdd($key, val, true)\" title=\"过滤该条件\">\r\n                        <i class=\"glyphicon glyphicon-zoom-in\"></i>\r\n                    </a>\r\n                    <a href=\"javascript:void(0)\" @click=\"filterAdd($key, val, false)\" title=\"排除该条件\">\r\n                        <i class=\"glyphicon glyphicon-zoom-out\"></i>\r\n                    </a>\r\n                </td>\r\n                <td class=\"value-cell\" v-html=\"val | highlight | xssFilter\"></td>\r\n            </template>\r\n        </tr>\r\n    </tbody>\r\n</table>";
+module.exports = "<ul class=\"detail-container\" >\r\n    <template v-for=\"val in currRecord.record | colFilter\">\r\n        <li>\r\n            <label class=\"label-cell\" v-text=\"$key | colName\"></label>\r\n            <label class=\"value-cell\" v-html=\"val | highlight | xssFilter\"></lavel>\r\n        </li>\r\n    </template>\r\n</ul>\r\n";
 
 },{}],7:[function(require,module,exports){
 "use strict";
@@ -307,11 +306,11 @@ exports.default = {
             self.calcWidth();
         };
 
-        this.$on("melon.grid.resize", function () {
+        this.$on(this.tableId + "vue.table.resize", function () {
             this.calcWidth();
         });
 
-        this.$on("melon.grid.loaded", function (data) {
+        this.$on(this.tableId + "vue.table.loaded", function (data) {
             this.loaded = true;
             this.chkAll = false;
             this.chkIds = [];
@@ -322,11 +321,11 @@ exports.default = {
             });
         });
 
-        this.$on("melon.grid.refresh", function () {
+        this.$on(this.tableId + "vue.table.refresh", function () {
             this.setPage();
         });
 
-        this.$on("melon.grid.search", function (url, param) {
+        this.$on(this.tableId + "vue.table.search", function (url, param) {
             if (arguments.length == 1) {
                 if (typeof url == "string") {
                     this.url = url;
@@ -452,7 +451,7 @@ exports.default = {
 
 		colFilter: function colFilter(value) {
 			if ((typeof value === "undefined" ? "undefined" : _typeof(value)) === "object") {
-				var filterCols = ["_id", "shown"];
+				var filterCols = [this.primaryKey, "shown", "_grid_index"];
 
 				if (value instanceof Array) {
 					return value.filter(function (col) {
@@ -541,7 +540,7 @@ exports.default = {
             this.primaryKey = "id";
         }
 
-        this.setPage();
+        this.setPage(1, true);
     }
 
 };
@@ -663,12 +662,11 @@ exports.default = {
 
             this.orderBy = col;
 
-            this.setPage(1);
+            this.setPage(1, true);
         },
 
         collapse: function collapse(record) {
             var self = this;
-            this.showJson && (this.showJson = false);
             if (this.currRecord.shown) {
                 this.records.$remove(this.currRecord);
             }
@@ -680,17 +678,15 @@ exports.default = {
                         break;
                     }
                 }
-                var last = this.records.splice(i + 1);
                 this.currRecord.shown = true;
                 this.currRecord.record = this.records[i];
-                this.records = this.records.concat(this.currRecord, last);
+                this.$dispatch(this.tableId + 'vue.table.collapse', this.currRecord);
+                this.records.splice(i + 1, 0, this.currRecord);
                 this.$nextTick(function () {
                     var detail = document.getElementById('grid-detail');
                     this.$compile(detail);
                 });
             }
-
-            this.$emit("melon.grid.resize");
         },
 
         formatData: function formatData(data) {
@@ -757,7 +753,7 @@ exports.default = {
                 }
 
                 setTimeout(function () {
-                    this.$dispatch("melon.grid.loaded", this.records);
+                    this.$dispatch(this.tableId + "vue.table.loaded", this.records);
                 }.bind(self), 0);
             }, function (res) {
                 self.records = [];
@@ -765,10 +761,35 @@ exports.default = {
             });
         },
 
-        clientCollection: function clientCollection() {
+        clientCollection: function clientCollection(sort) {
             var self = this,
                 page = this.page,
-                limit = this.pageSize;
+                limit = this.pageSize,
+                orderBy = this.orderBy,
+                ascending = this.ascending ? 1 : -1;
+
+            if (sort) {
+                this.data.sort(function (preData, nextData) {
+
+                    var pre = preData[orderBy],
+                        next = nextData[orderBy];
+
+                    if (typeof pre == "string" && typeof next == "string") {
+                        return ascending * pre.localeCompare(next);
+                    }
+                    if (typeof pre == "number" && typeof next == "string") {
+                        return -ascending;
+                    }
+                    if (typeof pre == "string" && typeof next == "number") {
+                        return ascending;
+                    }
+                    if (typeof pre == "number" && typeof next == "number") {
+                        if (pre > next) return ascending;
+                        if (pre == next) return 0;
+                        if (pre < next) return -ascending;
+                    }
+                });
+            }
 
             this.records = this.data.slice((page - 1) * limit, page * limit).map(function (d, i) {
                 self.formatData(d);
@@ -779,28 +800,28 @@ exports.default = {
             this.count = this.data.length;
 
             setTimeout(function () {
-                this.$dispatch("melon.grid.loaded", this.records);
+                this.$dispatch(this.tableId + "vue.table.loaded", this.records);
             }.bind(this), 0);
         },
 
-        getData: function getData() {
+        getData: function getData(sort) {
             var self = this,
                 params = {};
             this.loaded = false;
 
             if (this.data !== undefined) {
-                this.clientCollection();
+                this.clientCollection(sort);
             } else {
                 this.serverCollection();
             }
         },
 
-        setPage: function setPage(page) {
+        setPage: function setPage(page, sort) {
             if (typeof page !== 'undefined') {
                 this.page = page;
             }
             this.pageModel = this.page;
-            this.getData();
+            this.getData(sort);
         },
 
         gotoPage: function gotoPage() {
@@ -821,10 +842,10 @@ exports.default = {
 };
 
 },{"../../bases/http.es6":1}],11:[function(require,module,exports){
-module.exports = "\r\n<div class=\"grid-content\" :class=\"{hidden: calculating}\" v-el:content>\r\n    <!-- 标注线 -->\r\n    <div class=\"resize-line\" :style=\"{left : resizeLine.left + 'px'}\" v-show=\"resizeAble\" @mouseup.stop=\"resizeStop($event)\"></div>\r\n    <!-- 列表头部 -->\r\n    <div class=\"grid-head\" :style=\"{ width : container_w + 'px'}\" @mousemove=\"resize($event)\">\r\n        <div class=\"head-box head-scrollbar\">\r\n            <table class=\"table table-hover table-bordered table-striped head-table\" :style=\"{width: table_w + 'px'}\" :class=\"tableClass\" @mouseup.stop=\"resizeStop\">\r\n                <thead>\r\n                    <tr>\r\n                        <td v-if=\"multiple\" style=\"width : 50px;\">\r\n                            <div class=\"head-content\">\r\n                                <input type=\"checkbox\" v-model=\"chkAll\" :disabled=\"count == 0\">\r\n                            </div>\r\n                        </td>\r\n                        <td v-if=\"(showIndex && !multiple) || colSelect\" class=\"head-index\" style=\"width : 50px;\" >\r\n                            <div class=\"head-content\">\r\n                                <span v-if=\"!colSelect\">#</span>\r\n                            </div>\r\n                        </td>\r\n                        <th :id=\"initId(col)\" :style=\"{width: colWidths[col] + 'px'}\"  :class=\"{ 'resize-tr': resizeAble, 'sortable': sortColumns[col]}\" v-for=\"col in defaultColumns\"  >\r\n                            <span class=\"head-resize\" @mousedown.stop=\"resizeStart(col, $event)\" @click.stop>&nbsp;</span>\r\n                            <div class=\"head-content\" :title=\"col | colName\" @click=\"sort(col)\">\r\n                                {{col | colName}}\r\n                                <span class=\"head-sortable\" v-show=\"sortColumns[col] && orderBy != '' && col == orderBy\">\r\n                                  <span class=\"glyphicon glyphicon-triangle-top\" :class=\"{ 'sort-disabled': !ascending}\"></span>\r\n                                  <span class=\"glyphicon glyphicon-triangle-bottom\" :class=\"{ 'sort-disabled': ascending}\"></span>\r\n                                </span>\r\n                            </div>\r\n                        </th>\r\n                    </tr>\r\n                </thead>\r\n            </table>\r\n        </div>\r\n    </div>\r\n    <!-- 列表内容 -->\r\n    <div class=\"grid-body\" :style=\"{ width : container_w  + 'px'}\">\r\n        <div class=\"body-box\" :class=\"{ 'box-borderd': table_w < container_w, 'box-empty': count == 0}\">\r\n            <table class=\"table table-hover table-bordered table-striped grid-table\" :style=\"{width: table_w + 'px'}\" :class=\"tableClass\">\r\n                <tbody v-el:tbody>\r\n                <!--数据加载-->\r\n                <tr class=\"grid-loading\" v-if=\"!loaded\">\r\n                    <td colspan=\"{{colSpan}}\">\r\n                        <ul class=\"loading-content\">\r\n                            <li class=\"loading-circle\"></li>\r\n                            <li class=\"loading-circle\"></li>\r\n                            <li class=\"loading-circle\"></li>\r\n                        </ul>\r\n                    </td>\r\n                </tr>\r\n\r\n                <tr v-for=\"rec in records\" v-if=\"loaded\">\r\n                    <td v-if=\"multiple && !rec.shown\" style=\"width: 50px\">\r\n                        <div class=\"head-content\">\r\n                            <input type=\"checkbox\" v-model=\"chkIds\" value=\"{{rec[primaryKey]}}\" @click=\"\">\r\n                        </div>\r\n                    </td>\r\n                    <td v-if=\"((showIndex && !multiple) || colSelect) && !rec.shown\" class=\"grid-arrow\" style=\"width: 50px\">\r\n                        <a v-if=\"colSelect\" href=\"javascript:void(0);\" :class=\"collapseClass(rec)\" @click=\"collapse(rec)\"></a>\r\n                        <span v-else>{{rec._grid_index}}</span>\r\n                    </td>\r\n                    <td :tr-id=\"'td_' + initId(col)\" v-for=\"col in defaultColumns\" v-if=\"!rec.shown\" :style=\"{width: colWidths[col] + 'px'}\" v-html=\"rec[col] | tplRender col rec | highlight | xssFilter \">\r\n                    </td>\r\n                    <!--下拉详情列-->\r\n                    <td id=\"grid-detail\" class=\"detail-wrap\" v-if=\"rec.shown\" colspan=\"{{colSpan}}\" v-html=\"detail\">\r\n                    </td>\r\n                </tr>\r\n                <tr v-if=\"loaded && count == 0\">\r\n                    <td colspan=\"{{colSpan}}\">\r\n                        无数据显示\r\n                    </td>\r\n                </tr>\r\n                </tbody>\r\n            </table>\r\n        </div>\r\n    </div>\r\n</div>\r\n\r\n<!-- 分页控制 -->\r\n<nav class=\"grid-footer\">\r\n\r\n    <ul class=\"pagination grid-pagination\" v-if=\"showPage\">\r\n        <li :class=\"{'pagination-disabled': page == 0 || pageChunk == 1}\">\r\n            <a href=\"javascript:void(0);\" @click=\" (page != 0 && pageChunk != 1) && (setChunk(-1))\"><<</a>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || page == 1}\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 1 && page != 0) && (setPage(page - 1))\"><</a>\r\n        </li>\r\n\r\n        <li>\r\n            <span>共{{totalPage}}页，跳转至</span>\r\n            <input class=\"pagination-page\" type=\"text\" size=\"2\" v-model=\"pageModel\" @keyup.13.stop.prevent=\"gotoPage()\" number lazy>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || page == totalPage }\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 0 && page != totalPage) && (setPage(page + 1))\">></a>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || pageChunk == totalChunk}\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 0 && pageChunk != totalChunk) && (setChunk(1))\">>></a>\r\n        </li>\r\n    </ul>\r\n\r\n    <span class=\"pagination-info\">\r\n        共{{count | formatterNum}}记录\r\n    </span>\r\n\r\n</nav>";
+module.exports = "\r\n<div class=\"grid-content\" :class=\"{hidden: calculating}\" v-el:content>\r\n    <div class=\"resize-line\" :style=\"{left : resizeLine.left + 'px'}\" v-show=\"resizeAble\" @mouseup.stop=\"resizeStop($event)\"></div>\r\n    <div class=\"grid-head\" :style=\"{ width : container_w + 'px'}\" @mousemove=\"resize($event)\">\r\n        <div class=\"head-box head-scrollbar\">\r\n            <table class=\"table table-hover table-bordered table-striped head-table\" :style=\"{width: table_w + 'px'}\" :class=\"tableClass\" @mouseup.stop=\"resizeStop\">\r\n                <thead>\r\n                    <tr>\r\n                        <td v-if=\"multiple\" style=\"width : 50px;\">\r\n                            <div class=\"head-content\">\r\n                                <input type=\"checkbox\" v-model=\"chkAll\" :disabled=\"count == 0\">\r\n                            </div>\r\n                        </td>\r\n                        <td v-if=\"(showIndex && !multiple) || colSelect\" class=\"head-index\" style=\"width : 50px;\" >\r\n                            <div class=\"head-content\">\r\n                                <span>#</span>\r\n                            </div>\r\n                        </td>\r\n                        <th :id=\"initId(col)\" :style=\"{width: colWidths[col] + 'px'}\"  :class=\"{ 'resize-tr': resizeAble, 'sortable': sortColumns[col]}\" v-for=\"col in defaultColumns\"  >\r\n                            <span class=\"head-resize\" @mousedown.stop=\"resizeStart(col, $event)\" @click.stop>&nbsp;</span>\r\n                            <div class=\"head-content\" :title=\"col | colName\" @click=\"sort(col)\">\r\n                                {{col | colName}}\r\n                                <span class=\"head-sortable\" v-show=\"sortColumns[col] && orderBy != '' && col == orderBy\">\r\n                                  <span class=\"glyphicon glyphicon-triangle-top\" :class=\"{ 'sort-disabled': !ascending}\"></span>\r\n                                  <span class=\"glyphicon glyphicon-triangle-bottom\" :class=\"{ 'sort-disabled': ascending}\"></span>\r\n                                </span>\r\n                            </div>\r\n                        </th>\r\n                    </tr>\r\n                </thead>\r\n            </table>\r\n        </div>\r\n    </div>\r\n    <div class=\"grid-body\" :style=\"{ width : container_w  + 'px'}\">\r\n        <div class=\"body-box\" :class=\"{ 'box-borderd': table_w < container_w, 'box-empty': count == 0}\">\r\n            <table class=\"table table-hover table-bordered table-striped grid-table\" :style=\"{width: table_w + 'px'}\" :class=\"tableClass\">\r\n                <tbody v-el:tbody>\r\n                <tr class=\"grid-loading\" v-if=\"!loaded\">\r\n                    <td colspan=\"{{colSpan}}\">\r\n                        <ul class=\"loading-content\">\r\n                            <li class=\"loading-circle\"></li>\r\n                            <li class=\"loading-circle\"></li>\r\n                            <li class=\"loading-circle\"></li>\r\n                        </ul>\r\n                    </td>\r\n                </tr>\r\n\r\n                <tr v-for=\"rec in records\" v-if=\"loaded\">\r\n                    <td v-if=\"multiple && !rec.shown\" style=\"width: 50px\">\r\n                        <div class=\"head-content\">\r\n                            <input type=\"checkbox\" v-model=\"chkIds\" value=\"{{rec[primaryKey]}}\" @click=\"\">\r\n                        </div>\r\n                    </td>\r\n                    <td v-if=\"((showIndex && !multiple) || colSelect) && !rec.shown\" class=\"grid-arrow\" style=\"width: 50px\">\r\n                        <a v-if=\"colSelect\" href=\"javascript:void(0);\" :class=\"collapseClass(rec)\" @click=\"collapse(rec)\"></a>\r\n                        <span v-else>{{rec._grid_index}}</span>\r\n                    </td>\r\n                    <td :data-tr-id=\"'td_' + initId(col)\" v-for=\"col in defaultColumns\" v-if=\"!rec.shown\" :style=\"{width: colWidths[col] + 'px'}\" v-html=\"rec[col] | tplRender col rec | highlight | xssFilter \">\r\n                    </td>\r\n                    <td id=\"grid-detail\" class=\"detail-wrap\" v-if=\"rec.shown\" colspan=\"{{colSpan}}\" v-html=\"detail\">\r\n                    </td>\r\n                </tr>\r\n                <tr v-if=\"loaded && count == 0\">\r\n                    <td colspan=\"{{colSpan}}\">\r\n                        无数据显示\r\n                    </td>\r\n                </tr>\r\n                </tbody>\r\n            </table>\r\n        </div>\r\n    </div>\r\n</div>\r\n\r\n<nav class=\"grid-footer\">\r\n\r\n    <ul class=\"pagination grid-pagination\" v-if=\"showPage\">\r\n        <li :class=\"{'pagination-disabled': page == 0 || pageChunk == 1}\">\r\n            <a href=\"javascript:void(0);\" @click=\" (page != 0 && pageChunk != 1) && (setChunk(-1))\"><<</a>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || page == 1}\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 1 && page != 0) && (setPage(page - 1))\"><</a>\r\n        </li>\r\n\r\n        <li>\r\n            <span>共{{totalPage}}页，跳转至</span>\r\n            <input class=\"pagination-page\" type=\"text\" size=\"2\" v-model=\"pageModel\" @keyup.13.stop.prevent=\"gotoPage()\" number lazy>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || page == totalPage }\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 0 && page != totalPage) && (setPage(page + 1))\">></a>\r\n        </li>\r\n\r\n        <li :class=\"{'pagination-disabled': page == 0 || pageChunk == totalChunk}\">\r\n            <a href=\"javascript:void(0);\" @click=\"(page != 0 && pageChunk != totalChunk) && (setChunk(1))\">>></a>\r\n        </li>\r\n    </ul>\r\n\r\n    <span class=\"pagination-info\">\r\n        共{{count | formatterNum}}记录\r\n    </span>\r\n\r\n</nav>";
 
 },{}],12:[function(require,module,exports){
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -834,7 +855,7 @@ exports.default = {
         "chkAll": function chkAll(value) {
             if (value) {
                 for (var i = 0; i < this.records.length; i++) {
-                    var primaryKey = this.records[i][this.primaryKey];
+                    var primaryKey = this.records[i][this.primaryKey] + '';
                     if (_.indexOf(this.chkIds, primaryKey) == -1) {
                         this.chkIds.push(primaryKey);
                     }
@@ -843,7 +864,7 @@ exports.default = {
                 this.chkIds = [];
             }
 
-            this.$dispatch(this.tableId + 'mn_table.checkAll', this.chkIds.slice());
+            this.$dispatch(this.tableId + 'vue.table.checkAll', this.chkIds.slice());
         },
 
         "chkIds": function chkIds(value) {
@@ -852,14 +873,14 @@ exports.default = {
 
             if (curLen > 0) {
                 if (curLen > preLen) {
-                    this.$dispatch(this.tableId + 'mn_table.check', value.slice(-1)[0], value);
+                    this.$dispatch(this.tableId + 'vue.table.check', value.slice(-1)[0], value);
                 }
             }
             this._chkIds = value.slice();
         },
 
         "defaultColumns": function defaultColumns(val) {
-            this.$emit("melon.grid.resize");
+            this.$emit(this.tableId + "vue.table.resize");
         },
 
         "pageSize": function pageSize() {
@@ -1010,9 +1031,9 @@ exports.default = {
 };
 
 },{}],14:[function(require,module,exports){
-(function() { var head = document.getElementsByTagName('head')[0]; var style = document.createElement('style'); style.type = 'text/css';var css = "@-webkit-keyframes 'loading'{from{opacity:.2}to{-webkit-transform:scale(1.2);opacity:1}}.melon-grid{width:100%;border:1px solid #ddd;border-radius:4px;overflow:hidden}.melon-grid .col-label{display:block;margin:10px 0}.melon-grid .grid-content{width:100%;position:relative}.melon-grid .grid-content .resize-line{position:absolute;height:100%;border:1px dashed #CBCBCB;cursor:col-resize}.melon-grid .grid-content .grid-head{border-bottom:1px solid #ddd;background-color:#f2f2f2;overflow:hidden}.melon-grid .grid-content .grid-head .head-scrollbar{padding-right:20px}.melon-grid .grid-content .grid-head .head-scrollbar::-webkit-scrollbar{visibility:hidden}.melon-grid .grid-content .grid-head .head-scrollbar::-webkit-scrollbar-track{background:#f1f1f1}.melon-grid .grid-content .grid-head .head-box{float:left;box-sizing:content-box;overflow-x:hidden}.melon-grid .grid-content .grid-head .head-box .head-table{margin:0;table-layout:fixed;border:none}.melon-grid .grid-content .grid-head .head-box .head-table tr>th,.melon-grid .grid-content .grid-head .head-box .head-table tr>td{text-align:left;vertical-align:middle;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;border-left:none;border-top:none;border-bottom:none;padding:2px;padding-right:0}.melon-grid .grid-content .grid-head .head-box .head-table tr>th.sortable,.melon-grid .grid-content .grid-head .head-box .head-table tr>th.sortable{cursor:pointer}.melon-grid .grid-content .grid-head .head-box .head-table .resize-tr{cursor:col-resize}.melon-grid .grid-content .grid-head .head-box .head-table .head-content{height:35px;line-height:35px;padding:0 6px}.melon-grid .grid-content .grid-head .head-box .head-table .head-resize{height:35px;display:block;float:right;cursor:col-resize}.melon-grid .grid-content .grid-head .head-box .head-table .head-resize:hover{background-color:#E2E2E2}.melon-grid .grid-content .grid-head .head-box .head-table .head-sortable{font-size:12px;position:relative}.melon-grid .grid-content .grid-head .head-box .head-table .head-sortable>span:first-child{position:absolute;top:-3px;left:3px}.melon-grid .grid-content .grid-head .head-box .head-table .head-sortable>span:last-child{position:absolute;top:6px;left:3px}.melon-grid .grid-content .grid-head .head-box .head-table .head-sortable .sort-disabled{opacity:.35}.melon-grid .grid-content .grid-body{height:402px;overflow-y:auto}.melon-grid .grid-content .grid-body .body-box{border-bottom:1px solid #ddd;float:left}.melon-grid .grid-content .grid-body .body-box .grid-table{margin-bottom:0;table-layout:fixed;box-sizing:content-box;border:none}.melon-grid .grid-content .grid-body .body-box .grid-table tr>th,.melon-grid .grid-content .grid-body .body-box .grid-table tr>td{height:40px;text-align:left;vertical-align:middle;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;border-left:none;border-top:none}.melon-grid .grid-content .grid-body .body-box .grid-table tr>td:last-child{border-right:none}.melon-grid .grid-content .grid-body .body-box .grid-table tr:last-child>td{border-bottom:none}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading{height:400px;background-color:inherit}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content{width:200px;height:50px;margin:0 auto;list-style:none;display:-webkit-flex;-webkit-align-items:center;-webkit-justify-content:center}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle{width:20px;height:20px;border-radius:10px;background-color:#DDD;margin:0 10px;float:left}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:first-child{-webkit-transform:scale(0);-webkit-animation:loading .8s infinite alternate}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:nth-child(2){-webkit-transform:scale(0);-webkit-animation:loading .8s .3s infinite alternate}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:last-child{-webkit-transform:scale(0);-webkit-animation:loading .8s .6s infinite alternate}.melon-grid .grid-content .grid-body .body-box .grid-table .grid-arrow a{text-decoration:none}.melon-grid .grid-content .grid-body .body-box .grid-table pre{text-align:left;background-color:inherit;border:0}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-wrap{padding:20px}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav{height:40px;line-height:40px;border-bottom:1px solid #ddd;margin-bottom:10px;text-align:left}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label{width:120px;text-align:center;cursor:pointer}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label:hover{border-bottom:2px solid #42a9f4}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label.active{border-bottom:2px solid #42a9f4}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-table{width:100%}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-table tr>th,.melon-grid .grid-content .grid-body .body-box .grid-table .detail-table tr>td{text-align:left;vertical-align:middle}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-table .oper-cell{width:60px}.melon-grid .grid-content .grid-body .body-box .grid-table .detail-table .value-cell{word-break:break-all;word-wrap:break-word}.melon-grid .grid-content .grid-body .body-box.box-borderd tr>td:last-child{border-right:1px solid #ddd}.melon-grid .grid-content .grid-body .body-box.box-empty{border-bottom:none}.melon-grid .grid-content .grid-body .body-box.box-empty tr{background-color:transparent}.melon-grid .grid-content .grid-body .body-box.box-empty tr:hover{background-color:transparent}.melon-grid .grid-content .grid-body .body-box.box-empty tr>td:last-child{border:none}.melon-grid .hidden{visibility:hidden}.melon-grid .grid-footer{overflow:hidden;background-color:#f2f2f2}.melon-grid .grid-footer ul.grid-pagination{margin:0;float:left;position:relative;left:50%}.melon-grid .grid-footer ul.grid-pagination li{float:left;position:relative;right:50%}.melon-grid .grid-footer ul.grid-pagination li span,.melon-grid .grid-footer ul.grid-pagination li a{margin:0;color:#91a0ad;padding:6px 6px;border:0;background-color:inherit}.melon-grid .grid-footer ul.grid-pagination li a:focus,.melon-grid .grid-footer ul.grid-pagination li a:hover{background-color:#fff}.melon-grid .grid-footer ul.grid-pagination li .pagination-page{line-height:1.42857143;border:1px solid #ddd;border-radius:4px;padding:2px;margin-top:3px;margin-right:6px}.melon-grid .grid-footer ul.grid-pagination li.pagination-disabled{opacity:.35;cursor:default}.melon-grid .grid-footer ul.grid-pagination li.pagination-disabled a{cursor:default}.melon-grid .grid-footer ul.grid-pagination li.pagination-disabled a:focus,.melon-grid .grid-footer ul.grid-pagination li.pagination-disabled a:hover{background-color:transparent}.melon-grid .grid-footer ul.grid-pagination .grid-info span{margin:0;border-top:0;border-right:0;border-bottom:0;color:#333;background-color:inherit}.melon-grid .grid-footer ul.grid-pagination .grid-info span:hover{background-color:rgba(255,255,255,0)}.melon-grid .grid-footer ul.grid-pagination .grid-empty-info span{border:0;color:#333;background-color:inherit}.melon-grid .grid-footer .pagination-info{float:right;line-height:1.42857143;padding:6px 6px}.melon-grid .grid-footer .grid-limit{margin-bottom:0}.grid-resize{user-select:none}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
+(function() { var head = document.getElementsByTagName('head')[0]; var style = document.createElement('style'); style.type = 'text/css';var css = "@-webkit-keyframes 'loading'{from{opacity:.2}to{-webkit-transform:scale(1.2);opacity:1}}.vue-grid{width:100%;border:1px solid #ddd;border-radius:4px;overflow:hidden}.vue-grid .col-label{display:block;margin:10px 0}.vue-grid .grid-content{width:100%;position:relative}.vue-grid .grid-content .resize-line{position:absolute;height:100%;border:1px dashed #CBCBCB;cursor:col-resize}.vue-grid .grid-content .grid-head{border-bottom:1px solid #ddd;background-color:#f2f2f2;overflow:hidden}.vue-grid .grid-content .grid-head .head-scrollbar{padding-right:20px}.vue-grid .grid-content .grid-head .head-scrollbar::-webkit-scrollbar{visibility:hidden}.vue-grid .grid-content .grid-head .head-scrollbar::-webkit-scrollbar-track{background:#f1f1f1}.vue-grid .grid-content .grid-head .head-box{float:left;box-sizing:content-box;overflow-x:hidden}.vue-grid .grid-content .grid-head .head-box .head-table{margin:0;table-layout:fixed;border:none}.vue-grid .grid-content .grid-head .head-box .head-table tr>th,.vue-grid .grid-content .grid-head .head-box .head-table tr>td{text-align:left;vertical-align:middle;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;border-left:none;border-top:none;border-bottom:none;padding:2px;padding-right:0}.vue-grid .grid-content .grid-head .head-box .head-table tr>th.sortable,.vue-grid .grid-content .grid-head .head-box .head-table tr>th.sortable{cursor:pointer}.vue-grid .grid-content .grid-head .head-box .head-table .resize-tr{cursor:col-resize}.vue-grid .grid-content .grid-head .head-box .head-table .head-content{height:35px;line-height:35px;padding:0 6px}.vue-grid .grid-content .grid-head .head-box .head-table .head-resize{height:35px;display:block;float:right;cursor:col-resize}.vue-grid .grid-content .grid-head .head-box .head-table .head-resize:hover{background-color:#E2E2E2}.vue-grid .grid-content .grid-head .head-box .head-table .head-sortable{font-size:12px;position:relative}.vue-grid .grid-content .grid-head .head-box .head-table .head-sortable>span:first-child{position:absolute;top:-3px;left:3px}.vue-grid .grid-content .grid-head .head-box .head-table .head-sortable>span:last-child{position:absolute;top:6px;left:3px}.vue-grid .grid-content .grid-head .head-box .head-table .head-sortable .sort-disabled{opacity:.35}.vue-grid .grid-content .grid-body{height:402px;overflow-y:auto}.vue-grid .grid-content .grid-body .body-box{border-bottom:1px solid #ddd;float:left}.vue-grid .grid-content .grid-body .body-box .grid-table{margin-bottom:0;table-layout:fixed;box-sizing:content-box;border:none}.vue-grid .grid-content .grid-body .body-box .grid-table tr>th,.vue-grid .grid-content .grid-body .body-box .grid-table tr>td{height:40px;text-align:left;vertical-align:middle;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;border-left:none;border-top:none}.vue-grid .grid-content .grid-body .body-box .grid-table tr>td:last-child{border-right:none}.vue-grid .grid-content .grid-body .body-box .grid-table tr:last-child>td{border-bottom:none}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading{height:400px;background-color:inherit}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content{width:200px;height:50px;margin:0 auto;list-style:none;display:-webkit-flex;-webkit-align-items:center;-webkit-justify-content:center}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle{width:20px;height:20px;border-radius:10px;background-color:#DDD;margin:0 10px;float:left}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:first-child{-webkit-transform:scale(0);-webkit-animation:loading .8s infinite alternate}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:nth-child(2){-webkit-transform:scale(0);-webkit-animation:loading .8s .3s infinite alternate}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-loading .loading-content .loading-circle:last-child{-webkit-transform:scale(0);-webkit-animation:loading .8s .6s infinite alternate}.vue-grid .grid-content .grid-body .body-box .grid-table .grid-arrow a{text-decoration:none}.vue-grid .grid-content .grid-body .body-box .grid-table pre{text-align:left;background-color:inherit;border:0}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap{padding:0;overflow:hidden}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav{height:40px;line-height:40px;border-bottom:1px solid #ddd;margin-bottom:10px;text-align:left}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label{width:120px;text-align:center;cursor:pointer}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label:hover{border-bottom:2px solid #42a9f4}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap nav label.active{border-bottom:2px solid #42a9f4}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap .detail-container{padding:20px;margin:0;background-color:#fff;list-style:none}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap .detail-container .label-cell{width:20%;color:#00FA04}.vue-grid .grid-content .grid-body .body-box .grid-table .detail-wrap .detail-container .value-cell{width:80%;word-break:break-all;word-wrap:break-word}.vue-grid .grid-content .grid-body .body-box.box-borderd tr>td:last-child{border-right:1px solid #ddd}.vue-grid .grid-content .grid-body .body-box.box-empty{border-bottom:none}.vue-grid .grid-content .grid-body .body-box.box-empty tr{background-color:transparent}.vue-grid .grid-content .grid-body .body-box.box-empty tr:hover{background-color:transparent}.vue-grid .grid-content .grid-body .body-box.box-empty tr>td:last-child{border:none}.vue-grid .hidden{visibility:hidden}.vue-grid .grid-footer{overflow:hidden;background-color:#f2f2f2}.vue-grid .grid-footer ul.grid-pagination{margin:0;float:left;position:relative;left:50%}.vue-grid .grid-footer ul.grid-pagination li{float:left;position:relative;right:50%}.vue-grid .grid-footer ul.grid-pagination li span,.vue-grid .grid-footer ul.grid-pagination li a{margin:0;color:#91a0ad;padding:6px 6px;border:0;background-color:inherit}.vue-grid .grid-footer ul.grid-pagination li a:focus,.vue-grid .grid-footer ul.grid-pagination li a:hover{background-color:#fff}.vue-grid .grid-footer ul.grid-pagination li .pagination-page{line-height:1.42857143;border:1px solid #ddd;border-radius:4px;padding:2px;margin-top:3px;margin-right:6px}.vue-grid .grid-footer ul.grid-pagination li.pagination-disabled{opacity:.35;cursor:default}.vue-grid .grid-footer ul.grid-pagination li.pagination-disabled a{cursor:default}.vue-grid .grid-footer ul.grid-pagination li.pagination-disabled a:focus,.vue-grid .grid-footer ul.grid-pagination li.pagination-disabled a:hover{background-color:transparent}.vue-grid .grid-footer ul.grid-pagination .grid-info span{margin:0;border-top:0;border-right:0;border-bottom:0;color:#333;background-color:inherit}.vue-grid .grid-footer ul.grid-pagination .grid-info span:hover{background-color:rgba(255,255,255,0)}.vue-grid .grid-footer ul.grid-pagination .grid-empty-info span{border:0;color:#333;background-color:inherit}.vue-grid .grid-footer .pagination-info{float:right;line-height:1.42857143;padding:6px 6px}.vue-grid .grid-footer .grid-limit{margin-bottom:0}.grid-resize{user-select:none}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
 },{}],15:[function(require,module,exports){
-module.exports = "<div class=\"melon-grid\" :class=\"{'grid-resize': resizeAble}\" >\r\n\t<slot></slot>\r\n    <partial name=\"tableTpl\"></partial>\r\n</div>";
+module.exports = "<div class=\"vue-grid\" :class=\"{'grid-resize': resizeAble}\" >\r\n\t<slot></slot>\r\n    <partial name=\"tableTpl\"></partial>\r\n</div>";
 
 },{}]},{},[3])(3)
 });

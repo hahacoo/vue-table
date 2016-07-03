@@ -23,7 +23,6 @@ export default {
             orderBy: "",
             ascending: 1,
             searchParams: {},
-            showJson: false,
             loaded: false,
             chkAll : false,
             chkIds   : [],

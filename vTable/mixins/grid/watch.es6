@@ -4,7 +4,7 @@ export default {
         "chkAll"  : function(value) {
             if(value) {
                 for(var i = 0; i < this.records.length; i ++) {
-                    var primaryKey = this.records[i][this.primaryKey];
+                    var primaryKey = this.records[i][this.primaryKey] + '';
                     if(_.indexOf(this.chkIds, primaryKey) == -1) {
                         this.chkIds.push(primaryKey);
                     }
@@ -13,7 +13,7 @@ export default {
                 this.chkIds = [];
             }
 
-            this.$dispatch(this.tableId + 'mn_table.checkAll', this.chkIds.slice())
+            this.$dispatch(this.tableId + 'vue.table.checkAll', this.chkIds.slice())
         },
 
         "chkIds": function(value) {
@@ -22,14 +22,14 @@ export default {
 
             if(curLen > 0) {
                 if(curLen > preLen) {
-                    this.$dispatch(this.tableId + 'mn_table.check', value.slice(-1)[0], value)
+                    this.$dispatch(this.tableId + 'vue.table.check', value.slice(-1)[0], value)
                 }
             }
             this._chkIds = value.slice();
         },
 
         "defaultColumns": function(val) {
-            this.$emit("melon.grid.resize");
+            this.$emit(this.tableId + "vue.table.resize");
         },
 
         "pageSize" : function() {
