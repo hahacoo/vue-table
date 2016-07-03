@@ -2,7 +2,7 @@
 table, sort, page, resize, template
 
 # Demo
-![demo](http://github.com/hahacoo/vue-table/raw/master/img/img.png)
+![img](http://github.com/hahacoo/vue-table/raw/master/img/img.png)
 
 # Build Setup
 npm install
